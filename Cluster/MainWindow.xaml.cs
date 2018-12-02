@@ -75,10 +75,12 @@ namespace Cluster
                 }
             }
             // Pigiausio kelio testinimas
+            // Kai abi virsunes yra sandeliai
             graph.FindByValue("AT12").IsWarehouse = true;
             graph.FindByValue("AT11").IsWarehouse = true;
-            // Kazkodel grazina atvirkscia reiksme (vietoj kelio AT11 -> AT12, grazina AT12 -> AT11)
-            FindCheapestPath(graph.FindByValue("AT11"), graph.FindByValue("AT12"), graph);
+            FindCheapestPath(graph.FindByValue("AT12"), graph.FindByValue("AT11"), graph);
+            // Kai pradzia sandelys, o pabaiga ne
+            // REIKIA PRATESTINT!
         }
 
         Graph<string> CreateGraph(HashSet<Distance> distances, HashSet<Flow> roadFlows, HashSet<Flow> railFlows)
@@ -151,32 +153,99 @@ namespace Cluster
             }
         }
 
-        void FindCheapestPath(GraphNode<string> Origin, GraphNode<string> Destination, Graph<string> graph)
+        /// <summary>
+        /// Finds cheapest route between two places
+        /// </summary>
+        /// <param name="Origin">Origin place</param>
+        /// <param name="Destination">Destination place</param>
+        /// <param name="Graph">Graph</param>
+        void FindCheapestPath(GraphNode<string> Origin, GraphNode<string> Destination, Graph<string> Graph)
         {
+            // Speju, kad dar reiktu labai optimizuot.. :D
+
             // jei abi virsunes sandeliai, tai tiesiog tikrinam ar pigiau su traukiniu gabent ar su sunkvezimiu
             if(Origin.IsWarehouse && Destination.IsWarehouse)
             {
-                int key = 999999;
+                int key = FindCostsIndex(Origin, Destination);
                 Console.WriteLine("From " + Origin.Value + " To " + Destination.Value);
-                for (int i = 0; i < Origin.Neighbors.Count; i++)
-                {
-                    if (Origin.Neighbors[i].Value == Destination.Value)
-                    {
-                        key = i;
-                        break;
-                    }
-                }
 
-                if (graph.FindByValue(Origin.Value).RailCosts[key] < graph.FindByValue(Origin.Value).RoadCosts[key])
-                    Console.WriteLine("Cheaper by truck -> " + graph.FindByValue(Origin.Value).RoadCosts[key]);
-                else
-                    Console.WriteLine("Cheaper by train -> " + graph.FindByValue(Origin.Value).RailCosts[key]);
+                double RailCost = Graph.FindByValue(Destination.Value).RailCosts[key];
+                double RoadCost = Graph.FindByValue(Destination.Value).RoadCosts[key];
+
+                if (RailCost > RoadCost && RoadCost > 0)
+                    Console.WriteLine("Cheaper by truck -> " + RoadCost);
+                else if (RailCost < RoadCost && RailCost > 0)
+                    Console.WriteLine("Cheaper by train -> " + RailCost);
+                else if (RailCost == 0 && RoadCost == 0)
+                    Console.WriteLine("There is no road from {0} to {1} !!!", Origin.Value, Destination.Value);
+                else if (RailCost == RoadCost && (RoadCost > 0 || RailCost > 0))
+                    Console.WriteLine("Same price for both vehicle types ->" + RoadCost);
             }
             // jei pradzia sandelys o pabaiga ne, reikia ieskot ar bent vienas is pabaigos kaimynu yra sandelys, jeigu taip, tikrinti ar 
             // imanoma is to sandelio nueit i pradzios sandeli, jeigu imanoma - sumuojam kaina traukinys+sunkvezimis(iki galutinio tasko)
             // ir lyginam su tiesioginio vezimo sunkvezimiu kaina is pradzios i galutini taska ir grazinam pigesni varianta, jei kuris nors
             // is ankstesniu if'u nepasiteisina, grazinam tiesioginio vezimo sunkvezimiu kaina is pradzios i galutini taska.
+            else if (Origin.IsWarehouse && !Destination.IsWarehouse)
+            {
+                double PriceByTruck = 0;
+                double PriceByTrainAndTruck = 9999999999;
+                string TempWarehouse = null;
 
+                // Surandame tiesioginio vezimo sunkvezimiu kaina
+                int key = FindCostsIndex(Origin, Destination);
+                PriceByTruck = Graph.FindByValue(Origin.Value).RoadCosts[key];
+
+                // Ieskome ar imanoma krovini nugabent pigiau panaudojant papildoma sandeli (traukinio pagalba)
+                for (int i = 0; i < Destination.Neighbors.Count; i++)
+                {
+                    double TempTrainCost = 0;
+                    double TempTruckCost = 0;
+                    double TempCost = 0;
+                    //Tikriname ar bent vienas pabaigos kaimynas yra sandelys
+                    GraphNode<string> Neighbour = Graph.FindByValue(Destination.Neighbors[i].Value);
+                    if (Neighbour.IsWarehouse)
+                    {
+                        // Tikriname ar is pradzios tasko galima nugabenti krovini i pabaigos kaimyna
+                        for (int j = 0; j < Origin.Neighbors.Count; j++)
+                        {
+                            if (Origin.Neighbors[j].Value == Neighbour.Value)
+                            {
+                                // Randame pervezimo kaina is pradzios tasko i tarpini sandeli
+                                TempTrainCost = Neighbour.RailCosts[j];
+                                break;
+                            }
+                        }
+                        // Surandame pervezimo kaina sunkvezimiu is tarpinio sandelio i galutini taska
+                        for (int j = 0; j < Destination.Neighbors.Count; j++)
+                        {
+                            if (Destination.Neighbors[j].Value == Neighbour.Value)
+                            {
+                                TempTruckCost = Graph.FindByValue(Destination.Neighbors[j].Value).RoadCosts[j];
+                                break;
+                            }
+                        }
+                        // Randame bendra kaina Traukinys(nuo pradzios iki tarpinio sandelio) + Sunkvezimis (Nuo tarpinio iki galutinio tasko)
+                        if (TempTruckCost > 0 && TempTrainCost > 0)
+                            TempCost = TempTruckCost + TempTrainCost;
+                    }
+                    // Ieskome pigiausio pervezimo naudojant tarpini sandeli
+                    if (PriceByTrainAndTruck > TempCost && TempCost > 0)
+                    {
+                        PriceByTrainAndTruck = TempCost;
+                        TempWarehouse = Neighbour.Value;
+                    }
+                }
+                // Randame pigiausia pervezimo buda
+                if (PriceByTruck == 0)
+                    Console.WriteLine("Can't travel by truck!");
+                else if (PriceByTrainAndTruck == 9999999999)
+                    Console.WriteLine("Can't travel by train+truck!");
+                else if (PriceByTruck < PriceByTrainAndTruck && PriceByTruck > 0)
+                    Console.WriteLine("Cheaper by truck ->" + PriceByTruck);
+                else if (PriceByTruck > PriceByTrainAndTruck && PriceByTrainAndTruck > 0)
+                    Console.WriteLine("Cheaper by using temporary warehouse : {0}->{1}->{2} Price={3}", Origin.Value, TempWarehouse, Destination.Value, PriceByTrainAndTruck);
+
+            }
             // jei pradzia nera sandelys, o pabaiga yra, reikia ieskoti ar bent vienas is pradzios kaimynu yra sandelys, jeigu taip, tikrinti ar 
             // imanoma is to sandelio nueit i pabaigos sandeli, jeigu imanoma - sumuojam kaina sunkvezimis(iki tarpinio sandelio)+traukinys(iki tikslo)
             // ir lyginam su tiesioginio vezimo sunkvezimiu kaina is pradzios i galutini taska ir grazinam pigesni varianta, jei kuris nors
@@ -188,6 +257,16 @@ namespace Cluster
             // galutini taska ir grazinam pigesni varianta, jei kuris nors is ankstesniu if'u nepasiteisina, grazinam tiesioginio vezimo sunkvezimiu kaina.
 
             // ir aisku paskutinis "else" grazina tiesioginio vezimo sunkvezimiu kaina.
+        }
+
+        int FindCostsIndex(GraphNode<string> Origin, GraphNode<string> Destination)
+        {
+            for (int i = 0; i < Origin.Neighbors.Count; i++)
+            {
+                if (Origin.Neighbors[i].Value == Destination.Value)
+                    return i;
+            }
+            return 999999;
         }
     }
 }
