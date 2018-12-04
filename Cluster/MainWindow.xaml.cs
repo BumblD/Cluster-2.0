@@ -44,16 +44,16 @@ namespace Cluster
             foreach (var i in railFlow)
             {
                 //delivery cost
-                railCost += i.FlowTonKMs * TD;
+                railCost += i.FlowTons * TD;
                 //CO2 cost
-                railCost += i.FlowTonKMs * TE;
+                railCost += i.FlowTons * TE;
             }
             foreach (var i in roadFlow)
             {
                 //delivery cost
-                roadCost += i.FlowTonKMs * TD;
+                roadCost += i.FlowTons * TD;
                 //CO2 cost
-                roadCost += i.FlowTonKMs * TE;
+                roadCost += i.FlowTons * TE;
             }
             Console.WriteLine("Sum:{0} - Road:{1} - Rail:{2}", railCost + roadCost, roadCost, railCost);
 
@@ -138,7 +138,7 @@ namespace Cluster
                 {
                     if (item.Load == from.Value && item.Unload == to.Value)
                     {
-                        transportationCost = item.FlowTonKMs * TD;
+                        transportationCost = item.FlowTons * TD;
                         break;
                     }
                 }
@@ -156,7 +156,7 @@ namespace Cluster
                 {
                     if (item.Load == from.Value && item.Unload == to.Value)
                     {
-                        transportationCost = item.FlowTonKMs * RD;
+                        transportationCost = item.FlowTons * RD;
                         break;
                     }
                 }
@@ -304,9 +304,9 @@ namespace Cluster
                     Console.WriteLine("Can't travel by truck or train+truck! {0}-{1}", PriceByTruck, PriceByTrainAndTruck);*/
 
                 // Graziname pigiausia pervezimo buda
-                if ((PriceByTrainAndTruck > PriceByTruck && PriceByTruck > 0) || (PriceByTruck > 0 && PriceByTrainAndTruck == 0))
+                if ((PriceByTrainAndTruck > PriceByTruck && PriceByTruck > 0) || (PriceByTruck > 0 && PriceByTrainAndTruck == 99999999999))
                     return PriceByTruck;
-                else if ((PriceByTrainAndTruck < PriceByTruck && PriceByTrainAndTruck > 0) || (PriceByTrainAndTruck > 0 && PriceByTruck == 0))
+                else if ((PriceByTrainAndTruck < PriceByTruck && PriceByTrainAndTruck != 99999999999) || (PriceByTrainAndTruck != 99999999999 && PriceByTruck == 0))
                     return PriceByTrainAndTruck;
                 else
                     return 0;
@@ -382,9 +382,9 @@ namespace Cluster
                     Console.WriteLine("Can't travel by truck or train+truck! {0}-{1}", PriceByTruck, PriceByTrainAndTruck);*/
 
                 // Graziname pigiausia pervezimo buda
-                if ((PriceByTrainAndTruck > PriceByTruck && PriceByTruck > 0) || (PriceByTruck > 0 && PriceByTrainAndTruck == 0))
+                if ((PriceByTrainAndTruck > PriceByTruck && PriceByTruck > 0) || (PriceByTruck > 0 && PriceByTrainAndTruck == 99999999999))
                     return PriceByTruck;
-                else if ((PriceByTrainAndTruck < PriceByTruck && PriceByTrainAndTruck > 0) || (PriceByTrainAndTruck > 0 && PriceByTruck == 0))
+                else if ((PriceByTrainAndTruck < PriceByTruck && PriceByTrainAndTruck != 99999999999) || (PriceByTrainAndTruck != 99999999999 && PriceByTruck == 0))
                     return PriceByTrainAndTruck;
                 else
                     return 0;
@@ -475,9 +475,9 @@ namespace Cluster
                     Console.WriteLine("Can't travel by truck or train+truck! {0}-{1}", PriceByTruck, PriceByTrainAndTruck);*/
 
                 // Graziname pigiausia pervezimo buda
-                if ((PriceByTrainAndTruck > PriceByTruck && PriceByTruck > 0) || (PriceByTruck > 0 && PriceByTrainAndTruck == 0))
+                if ((PriceByTrainAndTruck > PriceByTruck && PriceByTruck > 0) || (PriceByTruck > 0 && PriceByTrainAndTruck == 99999999999))
                     return PriceByTruck;
-                else if ((PriceByTrainAndTruck < PriceByTruck && PriceByTrainAndTruck > 0) || (PriceByTrainAndTruck > 0 && PriceByTruck == 0))
+                else if ((PriceByTrainAndTruck < PriceByTruck && PriceByTrainAndTruck != 99999999999) || (PriceByTrainAndTruck != 99999999999 && PriceByTruck == 0))
                     return PriceByTrainAndTruck;
                 else
                     return 0;
